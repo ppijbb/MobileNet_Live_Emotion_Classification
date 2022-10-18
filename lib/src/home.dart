@@ -10,6 +10,7 @@ import 'package:tflite/tflite.dart';
 import 'package:opencv/opencv.dart' as cv;
 import 'package:image/image.dart' as img;
 import 'package:image_cropper/image_cropper.dart';
+import 'package:flutter_live_emotion/src/detections.dart';
 import 'package:flutter_live_emotion/painters/face_detector_painter.dart';
 // import 'package:syncfusion_flutter_gauges/gauges.dart';
 
@@ -38,7 +39,7 @@ class _HomeState extends State<Home> {
   late CameraController? cameraController;
   CustomPaint? customPaint;
   String output = 'Output label here';
-  String label = '';
+  String label = "";
   int _isFrontCamera = 0;
   double? _size = 150;
   double? _value = 0;
@@ -54,12 +55,22 @@ class _HomeState extends State<Home> {
     loadCamera();
   }
 
-  Uint8List concatenatePlanes(List<Plane> planes) {
-    final WriteBuffer allBytes = WriteBuffer();
-    for (Plane plane in planes) {
-      allBytes.putUint8List(plane.bytes);
-    }
-    return allBytes.done().buffer.asUint8List();
+  Future<List<Face>> _face_detection(CameraImage streams, Size _size) async {
+    Uint8List cameraImage_bytes = concatenatePlanes(streams.planes);
+    // Uint8List.fromList(
+    //   //cameraImage!.plane[0].bytes,
+    //   cameraImage!.planes.fold(
+    //       <int>[],
+    //       (List<int> previousValue, element) =>
+    //           previousValue..addAll(element.bytes)),
+    // );
+    InputImageData _inputImageData =
+        get_preprocessing(cameraImage = streams, _size = _size);
+    final List<Face> faces =
+        await _faceDetector.processImage(InputImage.fromBytes(
+            bytes: cameraImage_bytes, //cameraImage!.planes[0].bytes,
+            inputImageData: _inputImageData));
+    return faces;
   }
 
   loadCamera() {
@@ -71,58 +82,34 @@ class _HomeState extends State<Home> {
       } else {
         setState(() {
           cameraController!.startImageStream((imageStream) async {
-            cameraImage = imageStream;
             // print("####카메라 Stream");
             // 모델 이미지 input 사이즈는 224
             Size _size = Size(
-                cameraImage!.width.toDouble(), cameraImage!.height.toDouble());
-            // print("####Stream Size");
-            cameraImage_bytes = concatenatePlanes(cameraImage!.planes);
-            // Uint8List.fromList(
-            //   //cameraImage!.plane[0].bytes,
-            //   cameraImage!.planes.fold(
-            //       <int>[],
-            //       (List<int> previousValue, element) =>
-            //           previousValue..addAll(element.bytes)),
-            // );
-            _inputImageData = InputImageData(
-                size: _size,
-                imageRotation: InputImageRotation.rotation0deg,
-                // Video format: (iOS) kCVPixelFormatType_32BGRA, (Android) YUV_420_888.
-                inputImageFormat: InputImageFormat.bgra8888,
-                planeData: cameraImage!.planes.map((Plane plane) {
-                  return InputImagePlaneMetadata(
-                      bytesPerRow: plane.bytesPerRow,
-                      width: plane.width, //_size.width.toInt(),
-                      height: plane.height //_size.height.toInt()
-                      );
-                }).toList());
+                imageStream.width.toDouble(), imageStream.height.toDouble());
             List<Face> faces =
-                await _faceDetector.processImage(InputImage.fromBytes(
-                    bytes: cameraImage_bytes!, //cameraImage!.planes[0].bytes,
-                    inputImageData: _inputImageData!));
+                await _face_detection(imageStream, _size= _size);
             // print("####Stream 얼굴 인식");
             if (faces != null) {
-              final fd_painter = await FaceDetectorPainter(
+              FaceDetectorPainter fd_painter = await FaceDetectorPainter(
                   faces, _size, InputImageRotation.rotation0deg);
               // print("####얼굴 인식 페인터");
-              customPaint = CustomPaint(painter: fd_painter, size: _size);
+              // CustomPaint customPaint = CustomPaint(painter: fd_painter, size: _size);
 
               for (Face face in faces) {
-                final Rect boundingBox = face.boundingBox;
-                final double? rotX = face
+                Rect boundingBox = face.boundingBox;
+                double? rotX = face
                     .headEulerAngleX; // Head is tilted up and down rotX degrees
-                final double? rotY = face
+                double? rotY = face
                     .headEulerAngleY; // Head is rotated to the right rotY degrees
-                final double? rotZ = face
+                double? rotZ = face
                     .headEulerAngleZ; // Head is tilted sideways rotZ degrees
 
                 if (face.smilingProbability != null) {
-                  final double smileProb = face.smilingProbability!;
+                  double smileProb = face.smilingProbability!;
                   print("#### SmileProb : $smileProb");
                 }
                 if (face.trackingId != null) {
-                  final int id = face.trackingId!;
+                  int id = face.trackingId!;
                   print("#### tracking ID : $id");
                 }
                 if (faces != null) {
@@ -130,9 +117,8 @@ class _HomeState extends State<Home> {
                   print("#### ${_doFaceDetection}");
                   if (true || !_doFaceDetection) {
                     print("#### Model Called");
-                    //await Future.delayed(Duration(seconds: 5), () async {
                     _doFaceDetection = true;
-                    runModel(boundingBox);
+                    // runModel(boundingBox);
                   }
                 }
               }
@@ -143,31 +129,14 @@ class _HomeState extends State<Home> {
     });
   }
 
-  Uint8List croppingPlanes(List<Plane> planes, box, width) {
-    final WriteBuffer allBytes = WriteBuffer();
-    int divider = 1;
-    for (Plane plane in planes) {
-      for (int i = box!.top.round() ~/ divider; i < box!.bottom.round() ~/ divider; i++) {
-        for (int j = box!.left.round() ~/ divider; j < box!.right.round() ~/ divider; j++) {
-          allBytes.putUint8(plane.bytes[j + i * width ~/ divider]);
-        }
-      }
-      divider = 2; 
-      // allBytes.putUint8List(plane.bytes);
-    }
-    return allBytes.done().buffer.asUint8List();
-  }
-
-  Future(plane, box) async {
-    return await img.copyCrop(plane.bytes, box!.top.ond(), box!.bottom.round(),
-        box!.left.round(), box!.right.round());
-  }
-
   runModel(boxLTRB) async {
     print("#### Model Called");
-    if (cameraImage != null || _doFaceDetection) {
+    if (cameraImage != null || !_doFaceDetection) {
+      _doFaceDetection = true;
+      Uint8List _cropped =
+          croppingPlanes(cameraImage!.planes, boxLTRB!, cameraImage!.width);
       var predictions = await Tflite.runModelOnBinary(
-          binary: croppingPlanes(cameraImage!.planes, boxLTRB!, cameraImage!.width),
+          binary: _cropped,
           // imageHeight: cameraImage!.height,
           // imageWidth: cameraImage!.width,
           // imageMean: 127.5,
@@ -182,25 +151,24 @@ class _HomeState extends State<Home> {
           element['confidence'] > 0.5
               ? setState(() {
                   level = "Accurate Confidence";
-                  output =
-                      "$level \n top emotion : ${element['label']} confidence : ${double.parse((element['confidence'] * 100).toStringAsFixed(2))}";
+                  output = "$level \n"
+                      "top emotion : ${element['label']}"
+                      "confidence : ${double.parse((element['confidence'] * 100).toStringAsFixed(2))}";
                   _value = element['confidence'].toDouble() * 100;
                   label = element['label'];
                   print("#### $label $_value");
                 })
               : setState(() {
                   level = "Low Confidence";
-                  output =
-                      "$level \n top emotion : ${element['label']} \n confidence : ${double.parse((element['confidence'] * 100).toStringAsFixed(2))}";
+                  output = "$level \n"
+                      "top emotion : ${element['label']}\n"
+                      "confidence : ${double.parse((element['confidence'] * 100).toStringAsFixed(2))}";
                   _value = element['confidence'].toDouble() * 100;
                   label = element['label'];
                   print("#### $label $_value");
                 });
         });
       _doFaceDetection = false;
-      // await Future.delayed(Duration(seconds: 5), () {
-      //   _doFaceDetection = false;
-      // });
     }
   }
 
