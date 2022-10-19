@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:camera/camera.dart';
@@ -24,14 +25,14 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  final FaceDetector _faceDetector = FaceDetector(
-    options: FaceDetectorOptions(
-      enableContours: true,
-      enableClassification: true,
-      enableTracking: true,
-      performanceMode: FaceDetectorMode.fast,
-    ),
-  );
+  // final FaceDetector _faceDetector = FaceDetector(
+  //   options: FaceDetectorOptions(
+  //     enableContours: true,
+  //     enableClassification: true,
+  //     enableTracking: true,
+  //     performanceMode: FaceDetectorMode.fast,
+  //   ),
+  // );
   // CustomPaint? customPaint;
   bool _canProcess = true;
   bool _doFaceDetection = false;
@@ -47,30 +48,13 @@ class _HomeState extends State<Home> {
   int _pointers = 0;
   InputImageData? _inputImageData;
   Uint8List? cameraImage_bytes;
-
+  List<Face>? faces;
+  Rect? boundingBox;
   @override
   void initState() {
     super.initState();
     loadmodel();
     loadCamera();
-  }
-
-  Future<List<Face>> _face_detection(CameraImage streams, Size _size) async {
-    Uint8List cameraImage_bytes = concatenatePlanes(streams.planes);
-    // Uint8List.fromList(
-    //   //cameraImage!.plane[0].bytes,
-    //   cameraImage!.planes.fold(
-    //       <int>[],
-    //       (List<int> previousValue, element) =>
-    //           previousValue..addAll(element.bytes)),
-    // );
-    InputImageData _inputImageData =
-        get_preprocessing(cameraImage = streams, _size = _size);
-    final List<Face> faces =
-        await _faceDetector.processImage(InputImage.fromBytes(
-            bytes: cameraImage_bytes, //cameraImage!.planes[0].bytes,
-            inputImageData: _inputImageData));
-    return faces;
   }
 
   loadCamera() {
@@ -86,40 +70,35 @@ class _HomeState extends State<Home> {
             // 모델 이미지 input 사이즈는 224
             Size _size = Size(
                 imageStream.width.toDouble(), imageStream.height.toDouble());
-            List<Face> faces =
-                await _face_detection(imageStream, _size= _size);
+            final faces = await detect_face(imageStream, _size);
             // print("####Stream 얼굴 인식");
-            if (faces != null) {
+            if (faces != null && faces.length > 0) {
               FaceDetectorPainter fd_painter = await FaceDetectorPainter(
                   faces, _size, InputImageRotation.rotation0deg);
               // print("####얼굴 인식 페인터");
-              // CustomPaint customPaint = CustomPaint(painter: fd_painter, size: _size);
-
-              for (Face face in faces) {
-                Rect boundingBox = face.boundingBox;
-                double? rotX = face
-                    .headEulerAngleX; // Head is tilted up and down rotX degrees
-                double? rotY = face
-                    .headEulerAngleY; // Head is rotated to the right rotY degrees
-                double? rotZ = face
-                    .headEulerAngleZ; // Head is tilted sideways rotZ degrees
-
-                if (face.smilingProbability != null) {
-                  double smileProb = face.smilingProbability!;
-                  print("#### SmileProb : $smileProb");
-                }
-                if (face.trackingId != null) {
-                  int id = face.trackingId!;
-                  print("#### tracking ID : $id");
-                }
-                if (faces != null) {
-                  print('#### ${boundingBox}');
-                  print("#### ${_doFaceDetection}");
-                  if (true || !_doFaceDetection) {
-                    print("#### Model Called");
-                    _doFaceDetection = true;
-                    // runModel(boundingBox);
-                  }
+              this.customPaint = CustomPaint(painter: fd_painter, size: _size);
+              Face face = faces[0];
+              boundingBox = face.boundingBox;
+              double? rotX = face
+                  .headEulerAngleX; // Head is tilted up and down rotX degrees
+              double? rotY = face
+                  .headEulerAngleY; // Head is rotated to the right rotY degrees
+              double? rotZ =
+                  face.headEulerAngleZ; // Head is tilted sideways rotZ degrees
+              if (face.smilingProbability != null) {
+                double smileProb = face.smilingProbability!;
+                print("#### SmileProb : $smileProb");
+              }
+              if (face.trackingId != null) {
+                int id = face.trackingId!;
+                print("#### tracking ID : $id");
+              }
+              if (face != null) {
+                print('#### ${boundingBox}');
+                print("#### ${_doFaceDetection}");
+                if (true || !_doFaceDetection) {
+                  // _doFaceDetection = true;
+                  await runModel(boundingBox!);
                 }
               }
             }
@@ -130,9 +109,9 @@ class _HomeState extends State<Home> {
   }
 
   runModel(boxLTRB) async {
-    print("#### Model Called");
+    print("#### Model Called $_doFaceDetection");
     if (cameraImage != null || !_doFaceDetection) {
-      _doFaceDetection = true;
+      // _doFaceDetection = true;
       Uint8List _cropped =
           croppingPlanes(cameraImage!.planes, boxLTRB!, cameraImage!.width);
       var predictions = await Tflite.runModelOnBinary(
@@ -145,6 +124,7 @@ class _HomeState extends State<Home> {
           numResults: 3,
           threshold: 0.05,
           asynch: true);
+
       print("#### $predictions");
       if (predictions != null)
         predictions.forEach((element) {
@@ -168,6 +148,7 @@ class _HomeState extends State<Home> {
                   print("#### $label $_value");
                 });
         });
+      sleep(Duration(seconds: 30));
       _doFaceDetection = false;
     }
   }
@@ -303,8 +284,8 @@ class _HomeState extends State<Home> {
               );
             }),
           ),
-          if (customPaint != null)
-            Transform.rotate(angle: math.pi / 2.0, child: customPaint),
+          if (this.customPaint != null)
+            Transform.rotate(angle: math.pi / 2.0, child: this.customPaint),
         ]),
       );
     }
@@ -313,7 +294,7 @@ class _HomeState extends State<Home> {
   @override
   void dispose() {
     _canProcess = false;
-    _faceDetector.close();
+    // _faceDetector.close();
     cameraController!.dispose();
     super.dispose();
   }
