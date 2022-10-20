@@ -79,7 +79,17 @@ Uint8List croppingPlanes(List<Plane> planes, box, width) {
     divider = 2;
     // allBytes.putUint8List(plane.bytes);
   }
-  return allBytes.done().buffer.asUint8List();
+  print("#### Cropping called");
+  var cropped = allBytes.done().buffer.asUint8List();
+//   Uint8List.fromList(
+//   //cameraImage!.plane[0].bytes,
+//   planes.fold(
+//       <int>[],
+//       (List<int> previousValue, element) =>
+//           previousValue..addAll(element.bytes)),
+// );
+  print("#### ${cropped.length}");
+  return cropped;
 }
 
  // Future(plane, box) async {

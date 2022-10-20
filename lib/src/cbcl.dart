@@ -22,11 +22,9 @@ class CBCL extends StatefulWidget {
 }
 
 class _CBCLState extends State<CBCL> {
-  // CustomPaint? customPaint;
   bool _canProcess = true;
   bool _doFaceDetection = false;
   CameraImage? cameraImage;
-
   CustomPaint? customPaint;
   String output = 'In Progress';
   String label = '';
