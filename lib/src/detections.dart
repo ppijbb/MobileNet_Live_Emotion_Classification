@@ -1,16 +1,9 @@
-import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_live_emotion/main.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
-import 'package:syncfusion_flutter_gauges/gauges.dart';
-import 'package:tflite/tflite.dart';
-import 'package:opencv/opencv.dart' as cv;
 import 'package:image/image.dart' as img;
-import 'package:image_cropper/image_cropper.dart';
-import 'package:flutter_live_emotion/painters/face_detector_painter.dart';
 
 Uint8List concatenatePlanes(List<Plane> planes) {
   final WriteBuffer allBytes = WriteBuffer();
@@ -24,14 +17,14 @@ InputImageData get_preprocessing(CameraImage cameraImg, Size _s) {
   List<InputImagePlaneMetadata> c_plane = cameraImg.planes
       .map((Plane plane) => InputImagePlaneMetadata(
           bytesPerRow: plane.bytesPerRow,
-          width: _s.width.toInt(),
-          height: _s.height.toInt()))
+          width: cameraImg.width,
+          height: cameraImg.height))
       .toList();
   return InputImageData(
       size: _s,
       imageRotation: InputImageRotation.rotation0deg,
-      // Video format: (iOS) kCVPixelFormatType_32BGRA, (Android) YUV_420_888.
-      inputImageFormat: InputImageFormat.bgra8888,
+      // Video format: (iOS) kCVPixelFormatType_32BGRA, (Android) YUV_420_888. nv21(?)
+      inputImageFormat: InputImageFormat.yuv_420_888,
       planeData: c_plane);
 }
 
@@ -39,13 +32,6 @@ Future<List<Face>> detect_face(
   CameraImage streams,
   Size _s,
 ) async {
-  // Uint8List.fromList(
-  //   //cameraImage!.plane[0].bytes,
-  //   cameraImage!.planes.fold(
-  //       <int>[],
-  //       (List<int> previousValue, element) =>
-  //           previousValue..addAll(element.bytes)),
-  // );
   FaceDetector _fd = FaceDetector(
       options: FaceDetectorOptions(
           minFaceSize: 0.1,
@@ -59,37 +45,51 @@ Future<List<Face>> detect_face(
   InputImage _inputImg = InputImage.fromBytes(
       bytes: cameraImage_bytes, //cameraImage!.planes[0].bytes,
       inputImageData: _inputImageData);
-  // sleep(Duration(seconds: 3));
   return await _fd.processImage(_inputImg);
 }
 
-Uint8List croppingPlanes(List<Plane> planes, box, width) {
-  WriteBuffer allBytes = WriteBuffer();
-  int divider = 1;
-  for (Plane plane in planes) {
-    for (int i = box!.top.round() ~/ divider;
-        i < box!.bottom.round() ~/ divider;
-        i++) {
-      for (int j = box!.left.round() ~/ divider;
-          j < box!.right.round() ~/ divider;
-          j++) {
-        allBytes.putUint8(plane.bytes[j + i * width ~/ divider]);
-      }
+img.Image _convertYUV420(CameraImage image) {
+  var img_ = img.Image(image.width, image.height); // Create Image buffer
+
+  Plane plane = image.planes[0];
+  const int shift = (0xFF << 24);
+
+  // Fill image buffer with plane[0] from YUV420_888
+  for (int x = 0; x < image.width; x++) {
+    for (int planeOffset = 0;
+        planeOffset < image.height * image.width;
+        planeOffset += image.width) {
+      final pixelColor = plane.bytes[planeOffset + x];
+      // color: 0x FF  FF  FF  FF
+      //           A   B   G   R
+      // Calculate pixel color
+      var newVal = shift | (pixelColor << 16) | (pixelColor << 8) | pixelColor;
+      img_.data[planeOffset + x] = newVal;
     }
-    divider = 2;
-    // allBytes.putUint8List(plane.bytes);
   }
-  print("#### Cropping called");
-  var cropped = allBytes.done().buffer.asUint8List();
-//   Uint8List.fromList(
-//   //cameraImage!.plane[0].bytes,
-//   planes.fold(
-//       <int>[],
-//       (List<int> previousValue, element) =>
-//           previousValue..addAll(element.bytes)),
-// );
-  print("#### ${cropped.length}");
-  return cropped;
+  return img_;
+}
+
+img.Image _convertBGRA8888(CameraImage image) {
+  return img.Image.fromBytes(
+    image.width,
+    image.height,
+    image.planes[0].bytes,
+    format: img.Format.bgra,
+  );
+}
+
+Uint8List croppingPlanes(CameraImage c_image, Rect box, width, height) {
+  int box_left = box.left.toInt();
+  int box_top = box.top.toInt();
+  int box_w = box.size.width.toInt();
+  int box_h = box.size.height.toInt();
+
+  img.Image from_bytes = _convertYUV420(c_image);
+  img.Image cropped = img.copyCrop(from_bytes, box_left, box_top, box_w, box_h);
+  img.Image resized = img.copyResize(cropped, width: 224, height: 224);
+  var bufed = resized.getBytes();
+  return bufed;
 }
 
  // Future(plane, box) async {

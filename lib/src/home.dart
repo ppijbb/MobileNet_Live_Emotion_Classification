@@ -9,8 +9,6 @@ import 'package:flutter_live_emotion/main.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:syncfusion_flutter_gauges/gauges.dart';
 import 'package:tflite/tflite.dart';
-import 'package:opencv/opencv.dart' as cv;
-import 'package:image/image.dart' as img;
 import 'package:image_cropper/image_cropper.dart';
 import 'package:flutter_live_emotion/src/detections.dart';
 import 'package:flutter_live_emotion/painters/face_detector_painter.dart';
@@ -33,7 +31,7 @@ class _HomeState extends State<Home> {
   CustomPaint? customPaint;
   String output = 'Output label here';
   String label = "";
-  int _isFrontCamera = 0;
+  int _isFrontCamera = 1;
   double? _size = 150; // 모델 이미지 input 사이즈는 224
   double? _value = 0;
   String level = "";
@@ -50,8 +48,9 @@ class _HomeState extends State<Home> {
   }
 
   void loadCamera() {
-    cameraController =
-        CameraController(cameras![_isFrontCamera], ResolutionPreset.high);
+    cameraController = CameraController(
+        cameras![_isFrontCamera], ResolutionPreset.medium,
+        enableAudio: true, imageFormatGroup: ImageFormatGroup.yuv420);
     cameraController!.initialize().then((value) async {
       if (!mounted) {
         return;
@@ -60,79 +59,77 @@ class _HomeState extends State<Home> {
             .startImageStream((CameraImage imageStream) async {
           setState(() {
             this.cameraImage = imageStream;
-            // print("호출시간 ${DateTime.now().millisecondsSinceEpoch}");
           });
-          await loop().then((_) {});
+          await loop();
         });
       }
     });
   }
 
   _dfd_state({bool val = false}) async {
-    setState(() => this._doFaceDetection = val);
+    try {
+      setState(() => this._doFaceDetection = val);
+    } catch (e) {
+      setState(() => this._doFaceDetection = false);
+    }
   }
 
   loop() async {
-    // if (this._doFaceDetection == true) {
-    await this._dfd_state(val: false).then((_) async {
-      detect_func(this.cameraImage!);
-      this._doFaceDetection = false;
-      await Future.delayed(Duration(seconds: 10))
-          .then((_) async => await this._dfd_state(val: true));
-    });
-    // } else {
-    //   .then((_) {
-    //     sleep(Duration(seconds: 5));
-    //   });
-    // }
+    if (this._doFaceDetection) {
+      await detect_func(this.cameraImage!);
+      this._dfd_state(val: false);
+    } else {
+      await Future.delayed(Duration(seconds: 5)).then((_) {
+        this._dfd_state(val: true);
+      });
+    }
   }
 
-  Future detect_func(CameraImage imageStream) async {
+  Future detect_func(CameraImage? imageStream) async {
+    print("#### called");
     Size _size_ =
-        Size(imageStream.width.toDouble(), imageStream.height.toDouble());
-    await detect_face(imageStream, _size_).then((result) {
+        Size(imageStream!.width.toDouble(), imageStream.height.toDouble());
+    await detect_face(imageStream, _size_).then((result) async {
       faces = result;
+      if (faces != null && faces!.length > 0) {
+        FaceDetectorPainter fd_painter = await FaceDetectorPainter(
+            faces!, _size_, InputImageRotation.rotation0deg);
+        Face face = faces![0];
+        setState(() {
+          customPaint = CustomPaint(painter: fd_painter, size: _size_);
+          boundingBox = face.boundingBox;
+        });
+        // double? rotX =
+        //     face.headEulerAngleX; // Head is tilted up and down rotX degrees
+        // double? rotY =
+        //     face.headEulerAngleY; // Head is rotated to the right rotY degrees
+        // double? rotZ =
+        //     face.headEulerAngleZ; // Head is tilted sideways rotZ degrees
+        if (face.smilingProbability != null) {
+          double smileProb = face.smilingProbability!;
+        }
+        if (face.trackingId != null) {
+          int id = face.trackingId!;
+        }
+        if (face != null) {
+          if (this.cameraImage != null) await runModel(boundingBox!);
+        }
+      }
     });
-    if (faces != null && faces!.length > 0) {
-      FaceDetectorPainter fd_painter = await FaceDetectorPainter(
-          faces!, _size_, InputImageRotation.rotation0deg);
-      Face face = faces![0];
-      setState(() {
-        customPaint = CustomPaint(painter: fd_painter, size: _size_);
-        boundingBox = face.boundingBox;
-      });
-      // double? rotX =
-      //     face.headEulerAngleX; // Head is tilted up and down rotX degrees
-      // double? rotY =
-      //     face.headEulerAngleY; // Head is rotated to the right rotY degrees
-      // double? rotZ =
-      //     face.headEulerAngleZ; // Head is tilted sideways rotZ degrees
-      if (face.smilingProbability != null) {
-        double smileProb = face.smilingProbability!;
-        print("#### SmileProb : $smileProb");
-      }
-      if (face.trackingId != null) {
-        int id = face.trackingId!;
-        print("#### tracking ID : $id");
-      }
-      if (face != null) {
-        print('#### bB: ${boundingBox}');
-        if (this.cameraImage != null) await runModel(boundingBox!);
-      }
-    }
+    await this._dfd_state(val: false);
   }
 
   runModel(boxLTRB) async {
     print("#### Model Called ${this._doFaceDetection}");
+    var i_width = (boxLTRB.right - boxLTRB.left).toInt();
+    var i_height = (boxLTRB.bottom - boxLTRB.top).toInt();
     if (this.cameraImage != null) {
-      Uint8List _cropped = croppingPlanes(
-          this.cameraImage!.planes, boxLTRB!, this.cameraImage!.width);
-      var i_width = boxLTRB.right - boxLTRB.left;
-      var i_height = boxLTRB.bottom - boxLTRB.top;
-      await Tflite.runModelOnFrame(
-              bytesList: [_cropped],
-              imageHeight: i_height.toInt(), // this.cameraImage!.height,
-              imageWidth: i_width.toInt(), // this.cameraImage!.width,
+      Uint8List _cropped = croppingPlanes(this.cameraImage!, boxLTRB!,
+          this.cameraImage!.width, this.cameraImage!.height);
+      await Tflite.runModelOnBinary(
+              binary: _cropped,
+              // imageHeight: i_height, // this.cameraImage!.height,
+              // imageWidth: i_width, // this.cameraImage!.width,
               // imageMean: 127.5,
               // imageStd: 127.5,
               // rotation: 0, // Android Only
@@ -252,7 +249,7 @@ class _HomeState extends State<Home> {
                         child: Transform.scale(
                             scale: 0.7,
                             child: Transform.rotate(
-                                angle: -math.pi / 2.0,
+                                angle: math.pi / 2,
                                 child: _cameraPreviewWidget())),
                       ),
                       emotionChart()
