@@ -45,7 +45,9 @@ Future<List<Face>> detect_face(
   InputImage _inputImg = InputImage.fromBytes(
       bytes: cameraImage_bytes, //cameraImage!.planes[0].bytes,
       inputImageData: _inputImageData);
-  return await _fd.processImage(_inputImg);
+  List<Face> result = await _fd.processImage(_inputImg);
+  _fd.close();
+  return result;
 }
 
 img.Image _convertYUV420(CameraImage image) {
@@ -79,7 +81,7 @@ img.Image _convertBGRA8888(CameraImage image) {
   );
 }
 
-Uint8List croppingPlanes(CameraImage c_image, Rect box, width, height) {
+Uint8List croppingPlanes(CameraImage c_image, Rect box) {
   int box_left = box.left.toInt();
   int box_top = box.top.toInt();
   int box_w = box.size.width.toInt();
@@ -87,8 +89,9 @@ Uint8List croppingPlanes(CameraImage c_image, Rect box, width, height) {
 
   img.Image from_bytes = _convertYUV420(c_image);
   img.Image cropped = img.copyCrop(from_bytes, box_left, box_top, box_w, box_h);
-  img.Image resized = img.copyResize(cropped, width: 224, height: 224);
-  var bufed = resized.getBytes();
+  img.Image resized = img.copyResize(cropped, width: 336, height: 448);
+  Uint8List bufed = resized.getBytes();
+
   return bufed;
 }
 

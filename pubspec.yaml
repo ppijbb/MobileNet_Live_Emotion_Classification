@@ -24,14 +24,14 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.2
-  google_mlkit_face_detection: ^0.4.0
+  google_mlkit_face_detection: ^0.4.0 
   syncfusion_flutter_gauges: ^20.2.44
   opencv:
   image:
   image_cropper:
   camera:
   survey_kit:
-  tflite:
+  tflite: ^1.1.2
 
 dev_dependencies:
   flutter_test:
