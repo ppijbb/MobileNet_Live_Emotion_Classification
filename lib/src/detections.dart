@@ -87,7 +87,7 @@ Uint8List croppingPlanes(CameraImage c_image, Rect box) {
   int box_w = box.size.width.toInt();
   int box_h = box.size.height.toInt();
 
-  img.Image from_bytes = _convertYUV420(c_image);
+  img.Image from_bytes = _convertBGRA8888(c_image);
   img.Image cropped = img.copyCrop(from_bytes, box_left, box_top, box_w, box_h);
   img.Image resized = img.copyResize(cropped, width: 336, height: 448);
   Uint8List bufed = resized.getBytes();

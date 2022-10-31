@@ -51,7 +51,7 @@ class _HomeState extends State<Home> {
   void loadCamera() {
     cameraController = CameraController(
         cameras![_isFrontCamera], ResolutionPreset.medium,
-        enableAudio: true, imageFormatGroup: ImageFormatGroup.yuv420);
+        enableAudio: true, imageFormatGroup: ImageFormatGroup.bgra8888);
     cameraController!.initialize().then((value) async {
       if (!mounted) {
         return;
