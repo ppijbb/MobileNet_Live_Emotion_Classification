@@ -94,8 +94,3 @@ Uint8List croppingPlanes(CameraImage c_image, Rect box) {
 
   return bufed;
 }
-
- // Future(plane, box) async {
- //   return await img.copyCrop(plane.bytes, box!.top.ond(), box!.bottom.round(),
- //       box!.left.round(), box!.right.round());
- // }
