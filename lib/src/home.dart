@@ -122,45 +122,43 @@ class _HomeState extends State<Home> {
   }
 
   runModel(Rect boxLTRB, CameraImage image_stream) async {
-    // print("#### Model Called ${this._doFaceDetection}");
-    // List<Uint8List> _cropped = croppingPlanes(image_stream, boxLTRB);
-    setState(() => this.CropImage = croppingPlanes(image_stream, boxLTRB));
-    // await Tflite.runModelOnFrame(
-    //         bytesList: _cropped,
-    //         imageHeight: 224,
-    //         imageWidth: 224,
-    //         // imageMean: 127.5,
-    //         // imageStd: 127.5,
-    //         // rotation: 0, // Android Only
-    //         numResults: 3,
-    //         threshold: 0.1,
-    //         asynch: true)
-    //     .then((predictions) {
-    //   // print("#### preds : $predictions");
-    //   if (predictions != null) {
-    //     print("#### ${predictions}");
-    //     var element = predictions[0];
-    //     element['confidence'] > 0.6
-    //         ? setState(() {
-    //             _value = (element['confidence'] * 100).toDouble();
-    //             label = element['label'];
-    //             level = "Accurate Confidence";
-    //             output = "class : ${level}\n"
-    //                 "top emotion : ${label}\n"
-    //                 "confidence : ${_value!.toStringAsFixed(2)}";
-    //             this._doFaceDetection = true;
-    //           })
-    //         : setState(() {
-    //             _value = (element['confidence'] * 100).toDouble();
-    //             label = element['label'];
-    //             level = "Low Confidence";
-    //             output = "class : ${level}\n"
-    //                 "top emotion : ${label}\n"
-    //                 "confidence : ${_value!.toStringAsFixed(2)}";
-    //             this._doFaceDetection = true;
-    //           });
-    //   }
-    // });
+    List<Uint8List> _cropped = croppingPlanes(image_stream, boxLTRB);
+    // setState(() => this.CropImage = croppingPlanes(image_stream, boxLTRB));
+    await Tflite.runModelOnFrame(
+            bytesList: _cropped,
+            imageHeight: 224,
+            imageWidth: 224,
+            // imageMean: 127.5,
+            // imageStd: 127.5,
+            // rotation: 0, // Android Only
+            numResults: 3,
+            threshold: 0.1,
+            asynch: true)
+        .then((predictions) {
+      if (predictions != null) {
+        print("#### ${predictions}");
+        var element = predictions[0];
+        element['confidence'] > 0.6
+            ? setState(() {
+                _value = (element['confidence'] * 100).toDouble();
+                label = element['label'];
+                level = "Accurate Confidence";
+                output = "class : ${level}\n"
+                    "top emotion : ${label}\n"
+                    "confidence : ${_value!.toStringAsFixed(2)}";
+                this._doFaceDetection = true;
+              })
+            : setState(() {
+                _value = (element['confidence'] * 100).toDouble();
+                label = element['label'];
+                level = "Low Confidence";
+                output = "class : ${level}\n"
+                    "top emotion : ${label}\n"
+                    "confidence : ${_value!.toStringAsFixed(2)}";
+                this._doFaceDetection = true;
+              });
+      }
+    });
   }
 
   Future<Image> loadImage(List<Uint8List> IMG) async {
@@ -171,7 +169,7 @@ class _HomeState extends State<Home> {
     await Tflite.loadModel(
       model: "assets/mobilenet_v2_1.0_230_quant.tflite",
       labels: "assets/labels.txt",
-      numThreads: 1,
+      numThreads: 4,
       isAsset: true,
       useGpuDelegate: false,
     );

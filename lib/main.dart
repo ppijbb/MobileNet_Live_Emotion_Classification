@@ -2,6 +2,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_live_emotion/src/home.dart';
 import 'package:flutter_live_emotion/src/cbcl.dart';
+
 List<CameraDescription>? cameras;
 
 void main() async {
@@ -23,12 +24,11 @@ class MyApp extends StatelessWidget {
   }
 }
 
-
 class HomeRouter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset : false,
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: Text('Google ML Kit Demo App'),
         centerTitle: true,

@@ -80,40 +80,39 @@ img.Image _convertBGRA8888(CameraImage image) {
   );
 }
 
-// List<Uint8List>
-Image croppingPlanes(CameraImage c_image, Rect box) {
+List<Uint8List> croppingPlanes(CameraImage c_image, Rect box) {
   int box_left = box.left.toInt();
   int box_top = box.top.toInt();
-  int box_w = (box.size.width * 0.9).toInt();
-  int box_h = (box.size.height * 0.9).toInt();
+  int box_w = (box.size.width).toInt();
+  int box_h = (box.size.height).toInt();
   List<Uint8List> croppedImage = [];
-  Uint8List cameraImage_bytes = concatenatePlanes(c_image.planes);
-  img.Image from_bytes = img.Image.fromBytes(
-    c_image.width,
-    c_image.height,
-    cameraImage_bytes,
-  );
-  img.Image cropped = img.copyCrop(from_bytes, box_left, box_top, box_w, box_h);
-  img.Image resized = img.copyResize(cropped, width: 224, height: 224);
-  Uint8List bufed = resized.getBytes();
-  Image crop_Image = Image.memory(bufed);
-  return crop_Image;
-  int img_range = (bufed.length / 3).toInt();
-  for (var i = 0; i < 3; i++) {
-    int start_idx = i * img_range;
-    croppedImage.add(bufed.sublist(start_idx, start_idx + img_range));
-  }
-
-  // for (Plane _plane in c_image.planes) {
-  //   Uint8List _bytes = _plane.bytes;
-  //   img.Image from_bytes =
-  //       img.Image.fromBytes(c_image.width, c_image.height, _bytes);
-  //   img.Image cropped =
-  //       img.copyCrop(from_bytes, box_left, box_top, box_w, box_h);
-  //   img.Image resized = img.copyResize(cropped, width: 224, height: 224);
-  //   Uint8List bufed = resized.getBytes();
-  //   croppedImage.add(bufed);
+  // Uint8List cameraImage_bytes = concatenatePlanes(c_image.planes);
+  // img.Image from_bytes = img.Image.fromBytes(
+  //   c_image.width,
+  //   c_image.height,
+  //   cameraImage_bytes,
+  // );
+  // img.Image cropped = img.copyCrop(from_bytes, box_left, box_top, box_w, box_h);
+  // img.Image resized = img.copyResize(cropped, width: 224, height: 224);
+  // Uint8List bufed = resized.getBytes();
+  // Image crop_Image = Image.memory(bufed);
+  // return crop_Image;
+  // int img_range = (bufed.length / 3).toInt();
+  // for (var i = 0; i < 3; i++) {
+  //   int start_idx = i * img_range;
+  //   croppedImage.add(bufed.sublist(start_idx, start_idx + img_range));
   // }
 
-  // return croppedImage;
+  for (Plane _plane in c_image.planes) {
+    Uint8List _bytes = _plane.bytes;
+    img.Image from_bytes =
+        img.Image.fromBytes(c_image.width, c_image.height, _bytes);
+    img.Image cropped =
+        img.copyCrop(from_bytes, box_left, box_top, box_w-80, box_h-80);
+    img.Image resized = img.copyResize(cropped, width: 224, height: 224);
+    Uint8List bufed = resized.getBytes();
+    croppedImage.add(bufed);
+  }
+
+  return croppedImage;
 }
