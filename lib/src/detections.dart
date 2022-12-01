@@ -52,7 +52,6 @@ Future<List<Face>> detect_face(
 
 img.Image _convertYUV420(CameraImage image) {
   var img_ = img.Image(image.width, image.height); // Create Image buffer
-
   Plane plane = image.planes[0];
   const int shift = (0xFF << 24);
 
@@ -81,16 +80,40 @@ img.Image _convertBGRA8888(CameraImage image) {
   );
 }
 
-Uint8List croppingPlanes(CameraImage c_image, Rect box) {
+// List<Uint8List>
+Image croppingPlanes(CameraImage c_image, Rect box) {
   int box_left = box.left.toInt();
   int box_top = box.top.toInt();
-  int box_w = box.size.width.toInt();
-  int box_h = box.size.height.toInt();
-
-  img.Image from_bytes = _convertBGRA8888(c_image);
+  int box_w = (box.size.width * 0.9).toInt();
+  int box_h = (box.size.height * 0.9).toInt();
+  List<Uint8List> croppedImage = [];
+  Uint8List cameraImage_bytes = concatenatePlanes(c_image.planes);
+  img.Image from_bytes = img.Image.fromBytes(
+    c_image.width,
+    c_image.height,
+    cameraImage_bytes,
+  );
   img.Image cropped = img.copyCrop(from_bytes, box_left, box_top, box_w, box_h);
-  img.Image resized = img.copyResize(cropped, width: 336, height: 448);
+  img.Image resized = img.copyResize(cropped, width: 224, height: 224);
   Uint8List bufed = resized.getBytes();
+  Image crop_Image = Image.memory(bufed);
+  return crop_Image;
+  int img_range = (bufed.length / 3).toInt();
+  for (var i = 0; i < 3; i++) {
+    int start_idx = i * img_range;
+    croppedImage.add(bufed.sublist(start_idx, start_idx + img_range));
+  }
 
-  return bufed;
+  // for (Plane _plane in c_image.planes) {
+  //   Uint8List _bytes = _plane.bytes;
+  //   img.Image from_bytes =
+  //       img.Image.fromBytes(c_image.width, c_image.height, _bytes);
+  //   img.Image cropped =
+  //       img.copyCrop(from_bytes, box_left, box_top, box_w, box_h);
+  //   img.Image resized = img.copyResize(cropped, width: 224, height: 224);
+  //   Uint8List bufed = resized.getBytes();
+  //   croppedImage.add(bufed);
+  // }
+
+  // return croppedImage;
 }

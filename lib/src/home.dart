@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
@@ -13,6 +15,8 @@ import 'package:tflite/tflite.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:flutter_live_emotion/src/detections.dart';
 import 'package:flutter_live_emotion/painters/face_detector_painter.dart';
+import 'package:image/image.dart' as img;
+
 // import 'package:syncfusion_flutter_gauges/gauges.dart';
 
 class Home extends StatefulWidget {
@@ -41,6 +45,7 @@ class _HomeState extends State<Home> {
   Uint8List? cameraImage_bytes;
   List<Face>? faces = null;
   Rect? boundingBox;
+  Image? CropImage = null;
   @override
   void initState() {
     super.initState();
@@ -50,7 +55,7 @@ class _HomeState extends State<Home> {
 
   void loadCamera() {
     cameraController = CameraController(
-        cameras![_isFrontCamera], ResolutionPreset.medium,
+        cameras![_isFrontCamera], ResolutionPreset.high,
         enableAudio: true, imageFormatGroup: ImageFormatGroup.bgra8888);
     cameraController!.initialize().then((value) async {
       if (!mounted) {
@@ -117,54 +122,56 @@ class _HomeState extends State<Home> {
   }
 
   runModel(Rect boxLTRB, CameraImage image_stream) async {
-    print("#### Model Called ${this._doFaceDetection}");
-    var i_width = (boxLTRB.right - boxLTRB.left).toInt();
-    var i_height = (boxLTRB.bottom - boxLTRB.top).toInt();
-    Uint8List _cropped = croppingPlanes(image_stream, boxLTRB);
-    await Tflite.runModelOnBinary(
-            binary: _cropped,
-            // imageHeight: 224,
-            // imageWidth: 224,
-            // imageMean: 127.5,
-            // imageStd: 127.5,
-            // rotation: 0, // Android Only
-            numResults: 3,
-            threshold: 0.3,
-            asynch: true)
-        .then((predictions) {
-      print("#### preds : $predictions");
-      if (predictions != null)
-        predictions.forEach((element) {
-          element['confidence'] > 0.5
-              ? setState(() {
-                  level = "Accurate Confidence";
-                  output = "$level \n"
-                      "top emotion : ${element['label']}"
-                      "confidence : ${double.parse((element['confidence'] * 100).toStringAsFixed(2))}";
-                  _value = element['confidence'].toDouble() * 100;
-                  label = element['label'];
-                  print("#### $label $_value");
-                  this._doFaceDetection = true;
-                })
-              : setState(() {
-                  level = "Low Confidence";
-                  output = "$level \n"
-                      "top emotion : ${element['label']}\n"
-                      "confidence : ${double.parse((element['confidence'] * 100).toStringAsFixed(2))}";
-                  _value = element['confidence'].toDouble() * 100;
-                  label = element['label'];
-                  print("#### $label $_value");
-                  this._doFaceDetection = true;
-                });
-        });
-    });
+    // print("#### Model Called ${this._doFaceDetection}");
+    // List<Uint8List> _cropped = croppingPlanes(image_stream, boxLTRB);
+    setState(() => this.CropImage = croppingPlanes(image_stream, boxLTRB));
+    // await Tflite.runModelOnFrame(
+    //         bytesList: _cropped,
+    //         imageHeight: 224,
+    //         imageWidth: 224,
+    //         // imageMean: 127.5,
+    //         // imageStd: 127.5,
+    //         // rotation: 0, // Android Only
+    //         numResults: 3,
+    //         threshold: 0.1,
+    //         asynch: true)
+    //     .then((predictions) {
+    //   // print("#### preds : $predictions");
+    //   if (predictions != null) {
+    //     print("#### ${predictions}");
+    //     var element = predictions[0];
+    //     element['confidence'] > 0.6
+    //         ? setState(() {
+    //             _value = (element['confidence'] * 100).toDouble();
+    //             label = element['label'];
+    //             level = "Accurate Confidence";
+    //             output = "class : ${level}\n"
+    //                 "top emotion : ${label}\n"
+    //                 "confidence : ${_value!.toStringAsFixed(2)}";
+    //             this._doFaceDetection = true;
+    //           })
+    //         : setState(() {
+    //             _value = (element['confidence'] * 100).toDouble();
+    //             label = element['label'];
+    //             level = "Low Confidence";
+    //             output = "class : ${level}\n"
+    //                 "top emotion : ${label}\n"
+    //                 "confidence : ${_value!.toStringAsFixed(2)}";
+    //             this._doFaceDetection = true;
+    //           });
+    //   }
+    // });
+  }
+
+  Future<Image> loadImage(List<Uint8List> IMG) async {
+    return Image.memory(IMG[0]);
   }
 
   loadmodel() async {
     await Tflite.loadModel(
       model: "assets/mobilenet_v2_1.0_230_quant.tflite",
       labels: "assets/labels.txt",
-      numThreads: 2,
+      numThreads: 1,
       isAsset: true,
       useGpuDelegate: false,
     );
@@ -180,7 +187,7 @@ class _HomeState extends State<Home> {
           RadialAxis(
               showLabels: false,
               showTicks: false,
-              radiusFactor: 0.8,
+              radiusFactor: 0.7,
               axisLineStyle: const AxisLineStyle(
                 thickness: 0.2,
                 cornerStyle: CornerStyle.bothCurve,
@@ -241,12 +248,23 @@ class _HomeState extends State<Home> {
                       SizedBox(
                         height: 400,
                         child: Transform.scale(
-                            scale: 0.7,
+                            scale: 0.8,
                             child: Transform.rotate(
                                 angle: 0 * math.pi / 2.0,
                                 child: _cameraPreviewWidget())),
                       ),
-                      emotionChart()
+                      emotionChart(),
+                      Container(
+                          height: 448 / 8,
+                          width: 336 / 8,
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: Colors.black,
+                              width: 5,
+                            ),
+                          ),
+                          alignment: Alignment.center,
+                          child: (CropImage != null) ? CropImage : SizedBox())
                     ]),
                   ),
           ),
@@ -255,15 +273,15 @@ class _HomeState extends State<Home> {
           output,
           style: _value! > 70
               ? TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 12, color: Colors.red)
-              : TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                  fontWeight: FontWeight.bold, fontSize: 8, color: Colors.red)
+              : TextStyle(fontWeight: FontWeight.bold, fontSize: 8),
         ),
         Text(
           "${boundingBox}",
           style: _value! > 70
               ? TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 12, color: Colors.red)
-              : TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                  fontWeight: FontWeight.bold, fontSize: 8, color: Colors.red)
+              : TextStyle(fontWeight: FontWeight.bold, fontSize: 8),
         ),
       ]),
     );
@@ -300,8 +318,9 @@ class _HomeState extends State<Home> {
               );
             }),
           ),
-          if (customPaint != null)
-            Transform.rotate(angle: 0 * math.pi / 1, child: customPaint),
+          (customPaint != null)
+              ? Transform.rotate(angle: 0 * math.pi / 1, child: customPaint)
+              : SizedBox()
         ]),
       );
     }
