@@ -15,7 +15,9 @@ import 'package:tflite/tflite.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:flutter_live_emotion/src/detections.dart';
 import 'package:flutter_live_emotion/painters/face_detector_painter.dart';
+import 'package:flutter_live_emotion/src/tf_lite/quant.dart';
 import 'package:image/image.dart' as img;
+import 'package:tflite_flutter/tflite_flutter.dart';
 
 // import 'package:syncfusion_flutter_gauges/gauges.dart';
 
@@ -46,11 +48,18 @@ class _HomeState extends State<Home> {
   List<Face>? faces = null;
   Rect? boundingBox;
   Image? CropImage = null;
+  late ClassifierQuant _classifier;
   @override
   void initState() {
     super.initState();
-    loadmodel();
+    setState(() => _classifier = ClassifierQuant(numThreads: 1));
+    print("#### $_classifier");
+    // loadmodel();
     loadCamera();
+  }
+
+  _predict(img.Image imageInput) async {
+    return _classifier.predict(imageInput);
   }
 
   void loadCamera() {
@@ -122,43 +131,46 @@ class _HomeState extends State<Home> {
   }
 
   runModel(Rect boxLTRB, CameraImage image_stream) async {
-    List<Uint8List> _cropped = croppingPlanes(image_stream, boxLTRB);
+    // List<Uint8List> _cropped = croppingPlanes(image_stream, boxLTRB);
+    List<Uint8List> _cropped = processing_Planes(image_stream);
     // setState(() => this.CropImage = croppingPlanes(image_stream, boxLTRB));
-    await Tflite.runModelOnFrame(
-            bytesList: _cropped,
-            imageHeight: 224,
-            imageWidth: 224,
-            // imageMean: 127.5,
-            // imageStd: 127.5,
-            // rotation: 0, // Android Only
-            numResults: 3,
-            threshold: 0.1,
-            asynch: true)
-        .then((predictions) {
-      if (predictions != null) {
-        print("#### ${predictions}");
-        var element = predictions[0];
-        element['confidence'] > 0.6
-            ? setState(() {
-                _value = (element['confidence'] * 100).toDouble();
-                label = element['label'];
-                level = "Accurate Confidence";
-                output = "class : ${level}\n"
-                    "top emotion : ${label}\n"
-                    "confidence : ${_value!.toStringAsFixed(2)}";
-                this._doFaceDetection = true;
-              })
-            : setState(() {
-                _value = (element['confidence'] * 100).toDouble();
-                label = element['label'];
-                level = "Low Confidence";
-                output = "class : ${level}\n"
-                    "top emotion : ${label}\n"
-                    "confidence : ${_value!.toStringAsFixed(2)}";
-                this._doFaceDetection = true;
-              });
-      }
-    });
+    img.Image imageInput = imgImage(image_stream);
+    print("#### ${await _predict(imageInput)}");
+    // await Tflite.runModelOnFrame(
+    //         bytesList: _cropped,
+    //         imageHeight: image_stream.height,
+    //         imageWidth: image_stream.width,
+    //         // imageMean: 127.5,
+    //         // imageStd: 127.5,
+    //         // rotation: 0, // Android Only
+    //         numResults: 5,
+    //         threshold: 0.1,
+    //         asynch: true)
+    //     .then((predictions) {
+    //   if (predictions != null) {
+    //     print("#### ${predictions}");
+    //     var element = predictions[0];
+    //     element['confidence'] > 0.6
+    //         ? setState(() {
+    //             _value = (element['confidence'] * 100).toDouble();
+    //             label = element['label'];
+    //             level = "Accurate Confidence";
+    //             output = "class : ${level}\n"
+    //                 "top emotion : ${label}\n"
+    //                 "confidence : ${_value!.toStringAsFixed(2)}";
+    //             this._doFaceDetection = true;
+    //           })
+    //         : setState(() {
+    //             _value = (element['confidence'] * 100).toDouble();
+    //             label = element['label'];
+    //             level = "Low Confidence";
+    //             output = "class : ${level}\n"
+    //                 "top emotion : ${label}\n"
+    //                 "confidence : ${_value!.toStringAsFixed(2)}";
+    //             this._doFaceDetection = true;
+    //           });
+    //   }
+    // });
   }
 
   Future<Image> loadImage(List<Uint8List> IMG) async {
@@ -252,17 +264,17 @@ class _HomeState extends State<Home> {
                                 child: _cameraPreviewWidget())),
                       ),
                       emotionChart(),
-                      Container(
-                          height: 448 / 8,
-                          width: 336 / 8,
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              color: Colors.black,
-                              width: 5,
-                            ),
-                          ),
-                          alignment: Alignment.center,
-                          child: (CropImage != null) ? CropImage : SizedBox())
+                      // Container(
+                      //     height: 448 / 8,
+                      //     width: 336 / 8,
+                      //     decoration: BoxDecoration(
+                      //       border: Border.all(
+                      //         color: Colors.black,
+                      //         width: 5,
+                      //       ),
+                      //     ),
+                      //     alignment: Alignment.center,
+                      //     child: (CropImage != null) ? CropImage : SizedBox())
                     ]),
                   ),
           ),

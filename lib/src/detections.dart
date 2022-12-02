@@ -43,8 +43,7 @@ Future<List<Face>> detect_face(
   Uint8List cameraImage_bytes = concatenatePlanes(streams.planes);
   InputImageData _inputImageData = get_preprocessing(streams, _s);
   InputImage _inputImg = InputImage.fromBytes(
-      bytes: cameraImage_bytes, //cameraImage!.planes[0].bytes,
-      inputImageData: _inputImageData);
+      bytes: cameraImage_bytes, inputImageData: _inputImageData);
   List<Face> result = await _fd.processImage(_inputImg);
   _fd.close();
   return result;
@@ -81,38 +80,50 @@ img.Image _convertBGRA8888(CameraImage image) {
 }
 
 List<Uint8List> croppingPlanes(CameraImage c_image, Rect box) {
-  int box_left = box.left.toInt();
-  int box_top = box.top.toInt();
+  // Offset box_c = (box.center.dx.toInt(), box.center.dy.toInt());
   int box_w = (box.size.width).toInt();
   int box_h = (box.size.height).toInt();
+  int box_left = (c_image.width - box_w) ~/ 2;
+  int box_top = (c_image.height - box_h) ~/ 2;
   List<Uint8List> croppedImage = [];
-  // Uint8List cameraImage_bytes = concatenatePlanes(c_image.planes);
-  // img.Image from_bytes = img.Image.fromBytes(
-  //   c_image.width,
-  //   c_image.height,
-  //   cameraImage_bytes,
-  // );
-  // img.Image cropped = img.copyCrop(from_bytes, box_left, box_top, box_w, box_h);
-  // img.Image resized = img.copyResize(cropped, width: 224, height: 224);
-  // Uint8List bufed = resized.getBytes();
-  // Image crop_Image = Image.memory(bufed);
-  // return crop_Image;
-  // int img_range = (bufed.length / 3).toInt();
-  // for (var i = 0; i < 3; i++) {
-  //   int start_idx = i * img_range;
-  //   croppedImage.add(bufed.sublist(start_idx, start_idx + img_range));
-  // }
-
-  for (Plane _plane in c_image.planes) {
-    Uint8List _bytes = _plane.bytes;
-    img.Image from_bytes =
-        img.Image.fromBytes(c_image.width, c_image.height, _bytes);
-    img.Image cropped =
-        img.copyCrop(from_bytes, box_left, box_top, box_w-80, box_h-80);
-    img.Image resized = img.copyResize(cropped, width: 224, height: 224);
-    Uint8List bufed = resized.getBytes();
-    croppedImage.add(bufed);
+  Uint8List cameraImage_bytes = concatenatePlanes(c_image.planes);
+  img.Image from_bytes =
+      img.Image.fromBytes(c_image.width, c_image.height, cameraImage_bytes);
+  // print("#### ${from_bytes.getPixel(offsetX, 120)}");
+  img.Image cropped = img.copyCrop(from_bytes, box_left, box_top, 150, 150);
+  img.Image resized = img.copyResize(cropped, width: 224, height: 224);
+  Uint8List bufed = resized.getBytes();
+  // // Image crop_Image = Image.memory(bufed);
+  // // return crop_Image;
+  int img_range = (bufed.length / 3).toInt();
+  for (var i = 0; i < 3; i++) {
+    int start_idx = i * img_range;
+    croppedImage.add(bufed.sublist(start_idx, start_idx + img_range));
   }
 
+  // for (Plane _plane in c_image.planes) {
+  //   Uint8List _bytes = _plane.bytes;
+  //   img.Image from_bytes =
+  //       img.Image.fromBytes(c_image.width, c_image.height, _bytes);
+  //   img.Image cropped =
+  //       img.copyCrop(from_bytes, box_left, box_top, box_w, box_h);
+  //   img.Image resized = img.copyResize(cropped, width: 224, height: 224);
+  //   Uint8List bufed = resized.getBytes();
+  //   croppedImage.add(bufed);
+  // }
+
   return croppedImage;
+}
+
+List<Uint8List> processing_Planes(CameraImage c_image) {
+  List<Uint8List> result = [];
+  for (Plane _plane in c_image.planes) {
+    result.add(_plane.bytes);
+  }
+  return result;
+}
+
+img.Image imgImage(CameraImage c_image) {
+  Uint8List cameraImage_bytes = concatenatePlanes(c_image.planes);
+  return img.decodePng(cameraImage_bytes);
 }
