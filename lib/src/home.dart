@@ -77,23 +77,13 @@ class _HomeState extends State<Home> {
     });
   }
 
-  Future<void> _dfd_state({bool val = false}) async {
-    try {
-      setState(() => this._doFaceDetection = val);
-    } catch (e) {
-      setState(() => this._doFaceDetection = false);
-    }
-  }
 
   Future<void> loop(CameraImage i_stream) async {
     if (this._doFaceDetection) {
       await detect_func(i_stream);
-      this._dfd_state(val: false);
     } else {
       await Future.delayed(Duration(seconds: 5), () async {
-        this._dfd_state(val: true);
-        await Future.delayed(
-            Duration(milliseconds: 1), () => this._dfd_state(val: false));
+        await Future.delayed(Duration(milliseconds: 1));
       });
     }
   }
@@ -126,7 +116,6 @@ class _HomeState extends State<Home> {
           await runModel(face.boundingBox, imageStream);
       }
     });
-    this._dfd_state(val: false);
   }
 
   runModel(Rect boxLTRB, CameraImage image_stream) async {
