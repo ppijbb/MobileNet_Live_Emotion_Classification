@@ -45,27 +45,26 @@ class _HomeState extends State<Home> {
   int _pointers = 0;
   InputImageData? _inputImageData;
   Uint8List? cameraImage_bytes;
+  late ClassifierQuant _classifier;
   List<Face>? faces = null;
   Rect? boundingBox;
   Image? CropImage = null;
-  late ClassifierQuant _classifier;
   @override
   void initState() {
     super.initState();
-    setState(() => _classifier = ClassifierQuant(numThreads: 1));
-    print("#### $_classifier");
+    setState(() => _classifier = ClassifierQuant(numThreads: 4));
     // loadmodel();
     loadCamera();
   }
 
-  _predict(img.Image imageInput) async {
-    return _classifier.predict(imageInput);
+  _predict(img.Image imageInput, Rect ltrb) async {
+    return _classifier.predict(imageInput, ltrb);
   }
 
   void loadCamera() {
     cameraController = CameraController(
         cameras![_isFrontCamera], ResolutionPreset.high,
-        enableAudio: true, imageFormatGroup: ImageFormatGroup.bgra8888);
+        enableAudio: true, imageFormatGroup: ImageFormatGroup.yuv420);
     cameraController!.initialize().then((value) async {
       if (!mounted) {
         return;
@@ -86,7 +85,7 @@ class _HomeState extends State<Home> {
     }
   }
 
-  loop(CameraImage i_stream) async {
+  Future<void> loop(CameraImage i_stream) async {
     if (this._doFaceDetection) {
       await detect_func(i_stream);
       this._dfd_state(val: false);
@@ -103,7 +102,7 @@ class _HomeState extends State<Home> {
     Size _size_ =
         Size(imageStream.width.toDouble(), imageStream.height.toDouble());
     await detect_face(imageStream, _size_).then((List<Face> result) async {
-      if (result != null && result.length > 0) {
+      if (result.length > 0) {
         FaceDetectorPainter fd_painter = FaceDetectorPainter(
             result, _size_, InputImageRotation.rotation0deg);
         Face face = result[0];
@@ -132,25 +131,33 @@ class _HomeState extends State<Home> {
 
   runModel(Rect boxLTRB, CameraImage image_stream) async {
     // List<Uint8List> _cropped = croppingPlanes(image_stream, boxLTRB);
-    List<Uint8List> _cropped = processing_Planes(image_stream);
-    // setState(() => this.CropImage = croppingPlanes(image_stream, boxLTRB));
+    // List<Uint8List> _cropped = processing_Planes(image_stream);
     img.Image imageInput = imgImage(image_stream);
-    print("#### ${await _predict(imageInput)}");
+    await _predict(imageInput, boxLTRB).then((result) => setState(() {
+          _value = (0.5 * 100).toDouble();
+          label = result.toString();
+          level = "Low Confidence";
+          output = "class : ${level}\n"
+              "top emotion : ${label}\n"
+              "confidence : ${_value!.toStringAsFixed(2)}";
+          this._doFaceDetection = true;
+        }));
+    // print("####${_cropped.length}");
     // await Tflite.runModelOnFrame(
     //         bytesList: _cropped,
-    //         imageHeight: image_stream.height,
-    //         imageWidth: image_stream.width,
+    //         imageHeight: 224,
+    //         imageWidth: 224,
     //         // imageMean: 127.5,
     //         // imageStd: 127.5,
     //         // rotation: 0, // Android Only
-    //         numResults: 5,
+    //         numResults: 3,
     //         threshold: 0.1,
     //         asynch: true)
     //     .then((predictions) {
     //   if (predictions != null) {
     //     print("#### ${predictions}");
     //     var element = predictions[0];
-    //     element['confidence'] > 0.6
+    //     element['confidence'] > 0.7
     //         ? setState(() {
     //             _value = (element['confidence'] * 100).toDouble();
     //             label = element['label'];
@@ -181,7 +188,7 @@ class _HomeState extends State<Home> {
     await Tflite.loadModel(
       model: "assets/mobilenet_v2_1.0_230_quant.tflite",
       labels: "assets/labels.txt",
-      numThreads: 4,
+      numThreads: 2,
       isAsset: true,
       useGpuDelegate: false,
     );
@@ -339,6 +346,7 @@ class _HomeState extends State<Home> {
   @override
   void dispose() {
     _canProcess = false;
+    _classifier.close();
     Tflite.close();
     cameraController!.dispose();
     super.dispose();
