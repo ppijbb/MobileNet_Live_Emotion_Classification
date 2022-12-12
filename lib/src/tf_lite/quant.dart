@@ -8,8 +8,10 @@ class ClassifierQuant extends Classifier {
   String get modelName => 'models/mobilenet_v2_1.0_230_quant.tflite';
 
   @override
-  NormalizeOp get preProcessNormalizeOp => NormalizeOp(0, 1);
+  // NormalizeOp get preProcessNormalizeOp => NormalizeOp(0, 1);
+  NormalizeOp get preProcessNormalizeOp => NormalizeOp(0, 0);
 
   @override
-  NormalizeOp get postProcessNormalizeOp => NormalizeOp(0, 255);
+  // NormalizeOp get postProcessNormalizeOp => NormalizeOp(0, 255);
+  NormalizeOp get postProcessNormalizeOp => NormalizeOp(0, 0);
 }

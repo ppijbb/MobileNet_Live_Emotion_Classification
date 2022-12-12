@@ -93,7 +93,7 @@ abstract class Classifier {
     return IPB.process(_image);
   }
 
-  Future<Category> predict(Image image, material.Rect ltrb) async {
+  Future<List> predict(Image image, material.Rect ltrb) async {
     // List<int> _png_bytes = encodePng(image);
     // Image _decoded = decodePng(_png_bytes)!;
     final pres = DateTime.now().millisecondsSinceEpoch;
@@ -120,14 +120,12 @@ abstract class Classifier {
     final run = DateTime.now().millisecondsSinceEpoch - runs;
 
     // print('#### Time to run inference: $run ms');
-
     Map<String, double> labeledProb = TensorLabel.fromList(
             labels, _probabilityProcessor.process(_outputBuffer))
         .getMapWithFloatValue();
-    // print("#### $labeledProb");
     final pred = getTopProbability(labeledProb);
 
-    return Category(pred.key, pred.value);
+    return [pred.key, pred.value];
   }
 
   void close() {

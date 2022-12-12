@@ -18,7 +18,9 @@ import 'package:flutter_live_emotion/src/detections.dart';
 import 'package:flutter_live_emotion/painters/face_detector_painter.dart';
 import 'package:flutter_live_emotion/src/tf_lite/quant.dart';
 import 'package:image/image.dart' as img;
+import 'package:flutter/services.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
+import 'package:tflite_flutter_helper/src/label/category.dart';
 
 // import 'package:syncfusion_flutter_gauges/gauges.dart';
 
@@ -59,7 +61,7 @@ class _HomeState extends State<Home> {
     loadCamera();
   }
 
-  Future<Object> _predict(img.Image imageInput, Rect ltrb) async {
+  _predict(img.Image imageInput, Rect ltrb) async {
     return _classifier.predict(imageInput, ltrb);
   }
 
@@ -142,15 +144,15 @@ class _HomeState extends State<Home> {
     // List<Uint8List> _bytes = processing_Planes(image_stream);
     img.Image imageInput = convertYUV420ToImage(image_stream);
     // img.Image imageInput = await convertYUV420toImageColor_(image_stream);
-    await _predict(imageInput, boxLTRB).then((result) => setState(() {
-          print("#### ${result}");
-          _value = (0.5 * 100).toDouble();
-          label = result.toString();
-          level = "Low Confidence";
-          output = "class : ${level}\n"
-              "top emotion : ${label}\n"
-              "confidence : ${_value!.toStringAsFixed(2)}";
-        }));
+    List result = await _predict(imageInput, boxLTRB);
+    setState(() {
+      _value = result[1] * 100;
+      label = result[0];
+      level = (_value! > 70) ? "Low Confidence" : "High Confidence";
+      output = "class : ${level}\n"
+          "top emotion : ${label}\n"
+          "confidence : ${_value!.toStringAsFixed(2)}";
+    });
 
     // var imageBytes = (await rootBundle.load("assets/image/test11.jpg")).buffer;
     // img.Image oriImage = img.decodeJpg(imageBytes.asUint8List())!;
