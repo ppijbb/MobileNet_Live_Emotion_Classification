@@ -84,10 +84,8 @@ abstract class Classifier {
     //     _inputImage.height, (_inputImage.width ~/ 4).toInt()))
 
     final IPB = ImageProcessorBuilder()
-        .add(ResizeWithCropOrPadOp(
-          _image.height ~/ 1,
-          _image.width ~/ 1,
-        )) // ltrb.left ~/ 4, ltrb.top ~/ 1))
+        .add(ResizeWithCropOrPadOp(_image.height ~/ 2, _image.width ~/ 2,
+            ltrb.left ~/ 2, ltrb.top ~/ 2))
         .add(ResizeOp(
             _inputShape[1], _inputShape[2], ResizeMethod.NEAREST_NEIGHBOUR))
         .add(preProcessNormalizeOp)
