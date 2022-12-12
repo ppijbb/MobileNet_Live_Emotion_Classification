@@ -1,10 +1,13 @@
 import 'dart:math';
-
+import 'dart:io';
+import 'package:flutter/services.dart';
 import 'package:image/image.dart';
 import 'package:collection/collection.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:tflite_flutter_helper/tflite_flutter_helper.dart';
 import 'package:flutter/material.dart' as material;
+import 'package:path_provider/path_provider.dart';
+// import 'package:image_picker/image_picker.dart';
 
 abstract class Classifier {
   late Interpreter interpreter;
@@ -19,7 +22,8 @@ abstract class Classifier {
   late TfLiteType _inputType;
   late TfLiteType _outputType;
 
-  final String _labelsFileName = 'assets/labels.txt';
+  late Directory _root_dir;
+  final String _labelsFileName = 'assets/models/labels.txt';
 
   final int _labelsLength = 3;
 
@@ -38,7 +42,6 @@ abstract class Classifier {
     if (numThreads != null) {
       _interpreterOptions.threads = numThreads;
     }
-
     loadModel();
     loadLabels();
   }
@@ -48,7 +51,7 @@ abstract class Classifier {
       interpreter =
           await Interpreter.fromAsset(modelName, options: _interpreterOptions);
       print('#### Interpreter Created Successfully');
-
+      _root_dir = await getTemporaryDirectory();
       _inputShape = interpreter.getInputTensor(0).shape;
       _outputShape = interpreter.getOutputTensor(0).shape;
       _inputType = interpreter.getInputTensor(0).type;
@@ -81,8 +84,10 @@ abstract class Classifier {
     //     _inputImage.height, (_inputImage.width ~/ 4).toInt()))
 
     final IPB = ImageProcessorBuilder()
-        .add(ResizeWithCropOrPadOp(cropheight, (ltrb.width ~/ 4).toInt(),
-            (ltrb.left ~/ 4).toInt(), ltrb.top.toInt()))
+        .add(ResizeWithCropOrPadOp(
+          _image.height ~/ 1,
+          _image.width ~/ 1,
+        )) // ltrb.left ~/ 4, ltrb.top ~/ 1))
         .add(ResizeOp(
             _inputShape[1], _inputShape[2], ResizeMethod.NEAREST_NEIGHBOUR))
         .add(preProcessNormalizeOp)
@@ -90,19 +95,30 @@ abstract class Classifier {
     return IPB.process(_image);
   }
 
-  Category predict(Image image, material.Rect ltrb) {
-    List<int> _png_bytes = encodePng(image);
-    Image _decoded = decodePng(_png_bytes)!;
+  Future<Category> predict(Image image, material.Rect ltrb) async {
+    // List<int> _png_bytes = encodePng(image);
+    // Image _decoded = decodePng(_png_bytes)!;
     final pres = DateTime.now().millisecondsSinceEpoch;
     _inputImage = TensorImage(_inputType);
-    _inputImage.loadImage(_decoded);
-    var processed = _preProcess(ltrb, _inputImage);
+    // var bytesData = await rootBundle.load("assets/images/test1.jpg");
+    // File? img_file = await File('${_root_dir.path}/test1.jpg').writeAsBytes(
+    //     bytesData.buffer
+    //         .asUint8List(bytesData.offsetInBytes, bytesData.lengthInBytes));
+    // var pickedFile = await ImagePicker().getImage(source:ImageSource.camera);
+    // File img_file = File(pickedFile!.path);
+    // Image image = decodeImage(img_file.readAsBytesSync())!;
+    // TensorImage _inputImage = TensorImage();
+    _inputImage.loadImage(image);
+    // TensorImage? _inputImage = TensorImage.fromFile(img_file);
+    // _inputImage.loadImage(image);
+    // _inputImage.loadImage(_decoded);
+    TensorImage? processed = _preProcess(ltrb, _inputImage);
     final pre = DateTime.now().millisecondsSinceEpoch - pres;
 
     // print('#### Time to load image: $pre ms');
 
     final runs = DateTime.now().millisecondsSinceEpoch;
-    interpreter.run(processed.buffer, _outputBuffer.getBuffer());
+    interpreter.run(processed.buffer.asUint8List(), _outputBuffer.getBuffer());
     final run = DateTime.now().millisecondsSinceEpoch - runs;
 
     // print('#### Time to run inference: $run ms');
@@ -110,7 +126,7 @@ abstract class Classifier {
     Map<String, double> labeledProb = TensorLabel.fromList(
             labels, _probabilityProcessor.process(_outputBuffer))
         .getMapWithFloatValue();
-    print("#### $labeledProb");
+    // print("#### $labeledProb");
     final pred = getTopProbability(labeledProb);
 
     return Category(pred.key, pred.value);

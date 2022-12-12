@@ -31,6 +31,7 @@ dependencies:
   image_cropper:
   camera:
   survey_kit:
+  image_picker:
   tflite: ^1.1.2
   tflite_flutter: ^0.9.0
   tflite_flutter_helper: ^0.3.1
@@ -52,9 +53,10 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
+    - assets/models/
+    - assets/images/
+    - assets/survey/
     - assets/
-  #   - images/a_dot_ham.jpeg
-
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware.
 

@@ -1,0 +1,26 @@
+{
+    "images":{
+        "image1":"test1.jpg",
+        "image2":"test3.jpg",
+        "image3":"test6.jpg",
+        "image4":"test11.jpg"
+    },
+    "models":{
+        "label1":"labels.txt",
+        "label2":"labels_7.txt",
+        "model1":"model.tflite",
+        "model2":"model_low_acc.tflite",
+        "model3":"mobilenet_7.tflite",
+        "model4":"mobilenet_v2_1.0_224.tflite",
+        "model5":"mobilenet_v2_1.0_227.tflite",
+        "model6":"mobilenet_v2_1.0_227_quant.tflite",
+        "model7":"mobilenet_v2_1.0_228.tflite",
+        "model8":"mobilenet_v2_1.0_228_quant.tflite",
+        "model9":"mobilenet_v2_1.0_229_quant.tflite",
+        "model10":"mobilenet_v2_1.0_230_quant.tflite",
+        "model11":"mobilenet_v2_1.0_230.tflite"        
+    },
+    "survey":{
+        "example1":"example_json.json"
+    }
+}
