@@ -57,7 +57,7 @@ class _HomeState extends State<Home> {
   void initState() {
     super.initState();
     setState(() => _classifier = ClassifierQuant(numThreads: 1));
-    // loadmodel();
+    loadmodel();
     loadCamera();
   }
 
@@ -143,7 +143,6 @@ class _HomeState extends State<Home> {
     // List<Uint8List> _bytes = await croppingPlanes(image_stream, boxLTRB);
     // List<Uint8List> _bytes = processing_Planes(image_stream);
     img.Image imageInput = convertYUV420ToImage(image_stream);
-    // img.Image imageInput = await convertYUV420toImageColor_(image_stream);
     List result = await _predict(imageInput, boxLTRB);
     setState(() {
       _value = result[1] * 100;
@@ -157,50 +156,49 @@ class _HomeState extends State<Home> {
     // var imageBytes = (await rootBundle.load("assets/image/test11.jpg")).buffer;
     // img.Image oriImage = img.decodeJpg(imageBytes.asUint8List())!;
     // img.Image resizedImage = img.copyResize(oriImage, height: 224, width: 224);
+    // await Tflite.runModelOnFrame(
+    //         bytesList: _bytes!,
+    //         imageHeight: image_stream.height.toInt(),
+    //         imageWidth: image_stream.width.toInt(),
+    //         imageMean: 0.0,
+    //         imageStd: 0.0,
+    //         rotation: 0, // Android Only
+    //         numResults: 3,
+    //         threshold: 0.1,
+    //         asynch: true)
+    //     .then((predictions) {
+    //   if (predictions != null) {
+    //     print("#### predictions ${predictions}");
+    //     var element = predictions[0];
+    //     element['confidence'] > 0.7
+    //         ? setState(() {
+    //             _value = (element['confidence'] * 100).toDouble();
+    //             label = element['label'];
+    //             level = "Accurate Confidence";
+    //             output = "class : ${level}\n"
+    //                 "top emotion : ${label}\n"
+    //                 "confidence : ${_value!.toStringAsFixed(2)}";
+    //           })
+    //         : setState(() {
+    //             _value = (element['confidence'] * 100).toDouble();
+    //             label = element['label'];
+    //             level = "Low Confidence";
+    //             output = "class : ${level}\n"
+    //                 "top emotion : ${label}\n"
+    //                 "confidence : ${_value!.toStringAsFixed(2)}";
+    //           });
+    //   }
+    // });
+  }
 
-    //   await Tflite.runModelOnFrame(
-    //           bytesList: _bytes!,
-    //           imageHeight: image_stream.height.toInt(),
-    //           imageWidth: image_stream.width.toInt(),
-    //           imageMean: 127.5,
-    //           imageStd: 127.5,
-    //           rotation: 90, // Android Only
-    //           numResults: 3,
-    //           threshold: 0.1,
-    //           asynch: true)
-    //       .then((predictions) {
-    //     if (predictions != null) {
-    //       print("#### predictions ${predictions}");
-    //       var element = predictions[0];
-    //       element['confidence'] > 0.7
-    //           ? setState(() {
-    //               _value = (element['confidence'] * 100).toDouble();
-    //               label = element['label'];
-    //               level = "Accurate Confidence";
-    //               output = "class : ${level}\n"
-    //                   "top emotion : ${label}\n"
-    //                   "confidence : ${_value!.toStringAsFixed(2)}";
-    //             })
-    //           : setState(() {
-    //               _value = (element['confidence'] * 100).toDouble();
-    //               label = element['label'];
-    //               level = "Low Confidence";
-    //               output = "class : ${level}\n"
-    //                   "top emotion : ${label}\n"
-    //                   "confidence : ${_value!.toStringAsFixed(2)}";
-    //             });
-    //     }
-    //   });
-    // }
-
-    // Future<void> loadmodel() async {
-    //   await Tflite.loadModel(
-    //     model: "assets/models/mobilenet_v2_1.0_230_quant.tflite",
-    //     labels: "assets/models/labels.txt",
-    //     numThreads: 1,
-    //     isAsset: true,
-    //     useGpuDelegate: false,
-    //   );
+  Future<void> loadmodel() async {
+    await Tflite.loadModel(
+      model: "assets/models/mobilenet_v2_1.0_230_quant.tflite",
+      labels: "assets/models/labels.txt",
+      numThreads: 1,
+      isAsset: true,
+      useGpuDelegate: false,
+    );
   }
 
 // Widget Code
@@ -344,7 +342,7 @@ class _HomeState extends State<Home> {
   void dispose() {
     _canProcess = false;
     _classifier.close();
-    // Tflite.close();
+    Tflite.close();
     cameraController!.dispose();
     super.dispose();
   }

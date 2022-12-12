@@ -15,6 +15,14 @@ Uint8List concatenatePlanes(List<Plane> planes) {
   return allBytes.done().buffer.asUint8List();
 }
 
+List<Uint8List> processing_Planes(CameraImage c_image) {
+  List<Uint8List> result = [];
+  for (Plane _plane in c_image.planes) {
+    result.add(_plane.bytes);
+  }
+  return result;
+}
+
 InputImageData get_preprocessing(CameraImage cameraImg, Size _s) {
   List<InputImagePlaneMetadata> c_plane = cameraImg.planes
       .map((Plane plane) => InputImagePlaneMetadata(
@@ -47,7 +55,7 @@ Future<List<Face>> detect_face(CameraImage streams, Size _s) async {
   return await _fd.processImage(_inputImg);
 }
 
-img.Image _convertYUV420(CameraImage image) {
+img.Image convertYUV420(CameraImage image) {
   var img_ = img.Image(image.width, image.height); // Create Image buffer
   Plane plane = image.planes[0];
   const int shift = (0xFF << 24);
@@ -138,14 +146,6 @@ img.Image convertYUV420ToImage(CameraImage cameraImage) {
   return image;
 }
 
-List<Uint8List> processing_Planes(CameraImage c_image) {
-  List<Uint8List> result = [];
-  for (Plane _plane in c_image.planes) {
-    result.add(_plane.bytes);
-  }
-  return result;
-}
-
 Future<img.Image> convertYUV420toImageColor_(CameraImage image) async {
   const int shift = (0xFF << 24);
   try {
@@ -221,44 +221,4 @@ Future<List<Uint8List>> croppingPlanes(CameraImage c_image, Rect box) async {
   }
 
   return croppedImage;
-}
-
-Future<img.Image> imgImage(CameraImage c_image) async {
-  // Uint8List _image =
-  //     (await rootBundle.load("assets/images/test1.jpg")).buffer.asUint8List();
-  // return img.Image.fromBytes(943, 1115, _image);
-  return img.Image.fromBytes(c_image.planes[0].bytesPerRow, c_image.height,
-      concatenatePlanes(c_image.planes),
-      format: img.Format.rgb);
-}
-
-Uint8List imageToByteListUint8(img.Image image, int inputSize) {
-  var convertedBytes = Uint8List(1 * inputSize * inputSize * 3);
-  var buffer = Uint8List.view(convertedBytes.buffer);
-  int pixelIndex = 0;
-  for (var i = 0; i < inputSize; i++) {
-    for (var j = 0; j < inputSize; j++) {
-      var pixel = image.getPixel(j, i);
-      buffer[pixelIndex++] = img.getRed(pixel);
-      buffer[pixelIndex++] = img.getGreen(pixel);
-      buffer[pixelIndex++] = img.getBlue(pixel);
-    }
-  }
-  return convertedBytes.buffer.asUint8List();
-}
-
-Uint8List imageToByteListFloat32(
-    img.Image image, int inputSize, double mean, double std) {
-  var convertedBytes = Float32List(1 * inputSize * inputSize * 3);
-  var buffer = Float32List.view(convertedBytes.buffer);
-  int pixelIndex = 0;
-  for (var i = 0; i < inputSize; i++) {
-    for (var j = 0; j < inputSize; j++) {
-      var pixel = image.getPixel(j, i);
-      buffer[pixelIndex++] = (img.getRed(pixel) - mean) / std;
-      buffer[pixelIndex++] = (img.getGreen(pixel) - mean) / std;
-      buffer[pixelIndex++] = (img.getBlue(pixel) - mean) / std;
-    }
-  }
-  return convertedBytes.buffer.asUint8List();
 }
