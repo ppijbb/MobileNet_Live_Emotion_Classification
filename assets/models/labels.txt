@@ -1,3 +1,3 @@
-0 Happy
-1 Sad
-2 Neutral
+0 행복
+1 슬픔
+2 무표정

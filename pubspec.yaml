@@ -26,15 +26,16 @@ dependencies:
   cupertino_icons: ^1.0.2
   google_mlkit_face_detection: ^0.4.0 
   syncfusion_flutter_gauges: ^20.2.44
-  opencv:
   image:
   image_cropper:
   camera:
   survey_kit:
-  image_picker:
   tflite: ^1.1.2
   tflite_flutter: ^0.9.0
   tflite_flutter_helper: ^0.3.1
+  webview_flutter: ^4.0.1
+  flutter_inappwebview: ^5.7.2+3
+  permission_handler: ^10.2.0
 
 dev_dependencies:
   flutter_test:

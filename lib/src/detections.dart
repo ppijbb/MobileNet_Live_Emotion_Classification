@@ -32,7 +32,7 @@ InputImageData get_preprocessing(CameraImage cameraImg, Size _s) {
       .toList();
   return InputImageData(
       size: _s,
-      imageRotation: InputImageRotation.rotation0deg,
+      imageRotation: InputImageRotation.rotation90deg,
       // Video format: (iOS) kCVPixelFormatType_32BGRA, (Android) YUV_420_888. nv21(?)
       inputImageFormat: InputImageFormat.yuv420,
       planeData: c_plane);

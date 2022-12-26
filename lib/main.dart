@@ -2,11 +2,15 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_live_emotion/src/home.dart';
 import 'package:flutter_live_emotion/src/cbcl.dart';
+import 'package:flutter_live_emotion/src/webview.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 List<CameraDescription>? cameras;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Permission.camera.request();
+  await Permission.microphone.request();
   cameras = await availableCameras();
   runApp(new MyApp());
 }
@@ -46,6 +50,7 @@ class HomeRouter extends StatelessWidget {
                     children: [
                       CustomCard('문진테스트', CBCL()),
                       CustomCard('Face Detection', Home()),
+                      CustomCard('WebView Test', InAppWebViewPage()),
                     ],
                   ),
                   SizedBox(

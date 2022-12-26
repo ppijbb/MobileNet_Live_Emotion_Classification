@@ -13,7 +13,6 @@ import 'package:flutter_live_emotion/main.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:syncfusion_flutter_gauges/gauges.dart';
 import 'package:tflite/tflite.dart';
-import 'package:image_cropper/image_cropper.dart';
 import 'package:flutter_live_emotion/src/detections.dart';
 import 'package:flutter_live_emotion/painters/face_detector_painter.dart';
 import 'package:flutter_live_emotion/src/tf_lite/quant.dart';
@@ -109,7 +108,7 @@ class _HomeState extends State<Home> {
     await detect_face(imageStream, _size_).then((List<Face> result) async {
       if (result.length > 0) {
         FaceDetectorPainter fd_painter = FaceDetectorPainter(
-            result, _size_, InputImageRotation.rotation0deg);
+            result, _size_, InputImageRotation.rotation90deg);
         Face face = result[0];
         setState(() {
           this.customPaint = CustomPaint(painter: fd_painter, size: _size_);
@@ -211,7 +210,7 @@ class _HomeState extends State<Home> {
           RadialAxis(
               showLabels: false,
               showTicks: false,
-              radiusFactor: 0.7,
+              radiusFactor: 0.9,
               axisLineStyle: const AxisLineStyle(
                 thickness: 0.2,
                 cornerStyle: CornerStyle.bothCurve,
@@ -244,7 +243,7 @@ class _HomeState extends State<Home> {
                     angle: 90,
                     widget: Text(
                       _value!.toStringAsFixed(0) + ' / 100 \n $label',
-                      style: const TextStyle(fontSize: 11),
+                      style: const TextStyle(fontSize: 14),
                     ))
               ])
         ]),
@@ -256,12 +255,12 @@ class _HomeState extends State<Home> {
   Widget build(BuildContext context) {
     //빌드 시 faceDetector 이미지 처리 수행할 수 있도록
     return Scaffold(
-      appBar: AppBar(title: Text('Live Emotion Detection App')),
+      appBar: AppBar(title: Text('CAERScope Emotion Detection')),
       body: Column(children: [
         Padding(
-          padding: EdgeInsets.all(20),
+          padding: EdgeInsets.all(30),
           child: Container(
-            height: MediaQuery.of(context).size.height * 0.7,
+            height: MediaQuery.of(context).size.height * 0.8,
             width: MediaQuery.of(context).size.width,
             child: !cameraController!.value.isInitialized
                 ? Container()
@@ -269,31 +268,37 @@ class _HomeState extends State<Home> {
                     aspectRatio: 1,
                     child: Column(children: [
                       SizedBox(
-                        height: 400,
+                        height: 500,
                         child: Transform.scale(
-                            scale: 0.8,
+                            scale: 1.0,
                             child: Transform.rotate(
-                                angle: 0 * math.pi / 2.0,
+                                angle: 3 * math.pi / 2.0,
                                 child: _cameraPreviewWidget())),
                       ),
-                      emotionChart()
+                      emotionChart(),
+                      Text(
+                        output,
+                        style: _value! > 70
+                            ? TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 8,
+                                color: Colors.red)
+                            : TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 8),
+                      ),
+                      Text(
+                        "${boundingBox}",
+                        style: _value! > 70
+                            ? TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 8,
+                                color: Colors.red)
+                            : TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 8),
+                      ),
                     ]),
                   ),
           ),
-        ),
-        Text(
-          output,
-          style: _value! > 70
-              ? TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 8, color: Colors.red)
-              : TextStyle(fontWeight: FontWeight.bold, fontSize: 8),
-        ),
-        Text(
-          "${boundingBox}",
-          style: _value! > 70
-              ? TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 8, color: Colors.red)
-              : TextStyle(fontWeight: FontWeight.bold, fontSize: 8),
         ),
       ]),
     );
@@ -308,7 +313,7 @@ class _HomeState extends State<Home> {
         'Tap a camera',
         style: TextStyle(
           color: Colors.white,
-          fontSize: 24.0,
+          fontSize: 30.0,
           fontWeight: FontWeight.w900,
         ),
       );
