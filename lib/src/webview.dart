@@ -34,7 +34,8 @@ class _InAppWebViewPageState extends State<InAppWebViewPage> {
           Expanded(
             child: Container(
               child: InAppWebView(
-                  initialUrlRequest: URLRequest(url: Uri.https("tono.gq")),
+                  initialUrlRequest: URLRequest(
+                      url: Uri.https("tono.gq", "", {"code": "CS0002"})),
                   initialOptions: InAppWebViewGroupOptions(
                     crossPlatform: InAppWebViewOptions(
                       mediaPlaybackRequiresUserGesture: false,
