@@ -24,7 +24,6 @@ class InAppWebViewPage extends StatefulWidget {
 
 class _InAppWebViewPageState extends State<InAppWebViewPage> {
   InAppWebViewController? _webViewController;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -37,8 +36,13 @@ class _InAppWebViewPageState extends State<InAppWebViewPage> {
                   initialUrlRequest: URLRequest(
                       url: Uri.https("tono.gq", "", {"code": "CS0002"})),
                   initialOptions: InAppWebViewGroupOptions(
+                    android: AndroidInAppWebViewOptions(hardwareAcceleration: true),
                     crossPlatform: InAppWebViewOptions(
                       mediaPlaybackRequiresUserGesture: false,
+                      cacheEnabled: false,
+                      clearCache: true,
+                      javaScriptCanOpenWindowsAutomatically: true,
+                      useOnLoadResource: true,
                     ),
                   ),
                   onWebViewCreated: (InAppWebViewController controller) {
