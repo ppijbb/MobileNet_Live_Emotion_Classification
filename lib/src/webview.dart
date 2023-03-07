@@ -34,15 +34,23 @@ class _InAppWebViewPageState extends State<InAppWebViewPage> {
             child: Container(
               child: InAppWebView(
                   initialUrlRequest: URLRequest(
-                      url: Uri.https("tono.gq", "", {"code": "CS0002"})),
+                      url:
+                          Uri.https("caerface.ggm.pw", "", {"code": "CS0002"})),
                   initialOptions: InAppWebViewGroupOptions(
-                    android: AndroidInAppWebViewOptions(hardwareAcceleration: true),
+                    android: AndroidInAppWebViewOptions(
+                        clearSessionCache: true,
+                        hardwareAcceleration: true,
+                        useHybridComposition: true),
+                    ios: IOSInAppWebViewOptions(
+                      allowsInlineMediaPlayback: true,
+                    ),
                     crossPlatform: InAppWebViewOptions(
+                      useShouldOverrideUrlLoading: true,
                       mediaPlaybackRequiresUserGesture: false,
-                      cacheEnabled: false,
-                      clearCache: true,
+                      cacheEnabled: true,
+                      clearCache: false,
                       javaScriptCanOpenWindowsAutomatically: true,
-                      useOnLoadResource: true,
+                      useOnLoadResource: false,
                     ),
                   ),
                   onWebViewCreated: (InAppWebViewController controller) {
