@@ -34,8 +34,8 @@ class _InAppWebViewPageState extends State<InAppWebViewPage> {
             child: Container(
               child: InAppWebView(
                   initialUrlRequest: URLRequest(
-                      url:
-                          Uri.https("caerface.ggm.pw", "", {"code": "CS0002"})),
+                      url: Uri.https(
+                          "caerface.64bit.kr", "", {"code": "CS0002"})),
                   initialOptions: InAppWebViewGroupOptions(
                     android: AndroidInAppWebViewOptions(
                         clearSessionCache: true,
