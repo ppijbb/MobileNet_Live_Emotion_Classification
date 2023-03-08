@@ -48,9 +48,9 @@ class _InAppWebViewPageState extends State<InAppWebViewPage> {
                       useShouldOverrideUrlLoading: true,
                       mediaPlaybackRequiresUserGesture: false,
                       cacheEnabled: true,
-                      clearCache: false,
+                      clearCache: true,
                       javaScriptCanOpenWindowsAutomatically: true,
-                      useOnLoadResource: false,
+                      useOnLoadResource: true,
                     ),
                   ),
                   onWebViewCreated: (InAppWebViewController controller) {
